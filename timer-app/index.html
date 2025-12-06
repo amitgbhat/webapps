@@ -58,8 +58,10 @@
             padding: 20px 24px 40px;
             display: none;
             flex-direction: column;
+            align-items: center;
             opacity: 0;
             transition: opacity 0.4s ease;
+            width: 100%;
         }
 
         .screen.active {
@@ -68,7 +70,7 @@
         }
 
         /* CONFIG UI */
-        h1 { 
+        #config-screen h1 { 
             font-weight: 300; 
             font-size: 2.2rem; 
             margin: 10px 0 30px; 
@@ -77,6 +79,11 @@
             color: var(--text-main);
         }
         
+        .input-container {
+            width: 100%;
+            max-width: 400px;
+        }
+
         .input-group {
             background: var(--surface);
             border: 1px solid var(--surface-border);
@@ -87,6 +94,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            width: 100%;
         }
 
         .input-label { 
@@ -119,6 +127,7 @@
             font-weight: 600;
             cursor: pointer;
             width: 100%;
+            max-width: 400px;
             margin-top: auto;
             box-shadow: 0 10px 25px rgba(43, 10, 61, 0.2);
             transition: transform 0.1s;
@@ -127,7 +136,6 @@
 
         /* TIMER UI */
         #timer-screen { 
-            align-items: center; 
             justify-content: center; 
             text-align: center;
             color: var(--text-light); 
@@ -173,6 +181,37 @@
             box-shadow: none;
         }
 
+        /* FINISH SCREEN UI */
+        #finish-screen {
+            justify-content: center;
+            text-align: center;
+        }
+
+        .finish-title {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        .finish-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 50px;
+        }
+        
+        .check-icon {
+            font-size: 5rem;
+            color: #38ef7d;
+            margin-bottom: 30px;
+            animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+
         /* PULSE ANIMATION */
         @keyframes pulse-alert {
             0% { transform: scale(1); }
@@ -190,29 +229,31 @@
     <div id="config-screen" class="screen active">
         <h1>Design Workout</h1>
         
-        <div class="input-group">
-            <span class="input-label">Warm Up</span>
-            <input type="text" inputmode="numeric" id="warmup-cfg" class="time-input" placeholder="00:00" oninput="formatTimeInput(this)">
-        </div>
+        <div class="input-container">
+            <div class="input-group">
+                <span class="input-label">Warm Up</span>
+                <input type="text" inputmode="numeric" id="warmup-cfg" class="time-input" placeholder="00:00" oninput="formatTimeInput(this)">
+            </div>
 
-        <div class="input-group">
-            <span class="input-label">High Intensity</span>
-            <input type="text" inputmode="numeric" id="high-cfg" class="time-input" placeholder="00:00" oninput="formatTimeInput(this)">
-        </div>
+            <div class="input-group">
+                <span class="input-label">High Intensity</span>
+                <input type="text" inputmode="numeric" id="high-cfg" class="time-input" placeholder="00:00" oninput="formatTimeInput(this)">
+            </div>
 
-        <div class="input-group">
-            <span class="input-label">Low Intensity</span>
-            <input type="text" inputmode="numeric" id="low-cfg" class="time-input" placeholder="00:00" oninput="formatTimeInput(this)">
-        </div>
+            <div class="input-group">
+                <span class="input-label">Low Intensity</span>
+                <input type="text" inputmode="numeric" id="low-cfg" class="time-input" placeholder="00:00" oninput="formatTimeInput(this)">
+            </div>
 
-        <div class="input-group">
-            <span class="input-label">Total Sets</span>
-            <input type="number" inputmode="numeric" id="sets-cfg" class="time-input" value="8" style="width: 60px;">
-        </div>
+            <div class="input-group">
+                <span class="input-label">Total Sets</span>
+                <input type="number" inputmode="numeric" id="sets-cfg" class="time-input" value="8" style="width: 60px;">
+            </div>
 
-        <div class="input-group">
-            <span class="input-label">Cool Down</span>
-            <input type="text" inputmode="numeric" id="cooldown-cfg" class="time-input" placeholder="00:00" oninput="formatTimeInput(this)">
+            <div class="input-group">
+                <span class="input-label">Cool Down</span>
+                <input type="text" inputmode="numeric" id="cooldown-cfg" class="time-input" placeholder="00:00" oninput="formatTimeInput(this)">
+            </div>
         </div>
 
         <button class="btn" onclick="startWorkout()">Start Workout</button>
@@ -225,9 +266,17 @@
         <div class="sets-display" id="sets-display">Set 1 of 8</div>
 
         <div class="controls">
-            <button class="btn btn-secondary" onclick="stopWorkout()">Stop</button>
+            <button class="btn btn-secondary" onclick="resetToMain()">Stop</button>
             <button class="btn btn-secondary" id="pause-btn" onclick="togglePause()">Pause</button>
         </div>
+    </div>
+
+    <!-- FINISH SCREEN -->
+    <div id="finish-screen" class="screen">
+        <div class="check-icon">✓</div>
+        <div class="finish-title">Complete!</div>
+        <div class="finish-subtitle">Great session. You crushed it.</div>
+        <button class="btn" onclick="resetToMain()">Done</button>
     </div>
 
     <script>
@@ -277,7 +326,7 @@
             wakeLock: null
         };
 
-        // --- AUDIO SYSTEM (Loud, Crisp) ---
+        // --- AUDIO SYSTEM ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
         function playBeep(freq = 880, type = 'square', duration = 0.15) {
@@ -291,7 +340,7 @@
             
             // Hard, loud attack
             gain.gain.setValueAtTime(0, audioCtx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.8, audioCtx.currentTime + 0.01); // Louder gain (0.8)
+            gain.gain.linearRampToValueAtTime(0.8, audioCtx.currentTime + 0.01); 
             gain.gain.setValueAtTime(0.8, audioCtx.currentTime + duration - 0.01);
             gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration); 
             
@@ -302,7 +351,6 @@
             osc.stop(audioCtx.currentTime + duration);
         }
         
-        // Standard "High Intensity" Transition Sound
         function playTransitionSound() {
             playBeep(1500, 'square', 0.4); 
         }
@@ -322,7 +370,6 @@
 
         // --- STORAGE ---
         function loadSettings() {
-            // Defaults
             document.getElementById('warmup-cfg').value = "00:30";
             document.getElementById('high-cfg').value = "00:45";
             document.getElementById('low-cfg').value = "00:15";
@@ -359,10 +406,10 @@
             state.isPaused = false;
             
             document.getElementById('config-screen').classList.remove('active');
+            document.getElementById('finish-screen').classList.remove('active');
             document.getElementById('timer-screen').classList.add('active');
             requestWakeLock();
             
-            // Initial start sound
             playTransitionSound();
 
             if (state.warmup > 0) startPhase('WARMUP');
@@ -417,15 +464,12 @@
                 state.timeLeft--;
                 updateTimerDisplay();
 
-                // Countdown logic: 3, 2, 1
                 if (state.timeLeft <= 3 && state.timeLeft >= 1) {
                     document.getElementById('time-display').classList.add('pulse');
                     playCountdownBeep(); 
                 }
-                // ZERO Transition
                 else if (state.timeLeft === 0) {
                     document.getElementById('time-display').classList.add('pulse');
-                    // Play the loud transition beep at exactly 0
                     playTransitionSound();
                 }
 
@@ -463,18 +507,33 @@
             document.getElementById('pause-btn').innerText = state.isPaused ? "Resume" : "Pause";
         }
 
-        function stopWorkout() {
+        // Transition from Timer -> Finish Screen
+        function finishWorkout() {
+            clearInterval(state.intervalId);
+            if(state.wakeLock) state.wakeLock.release();
+
+            // Reset Background to Beige
+            document.body.style.background = 'var(--bg-default)';
+            
+            // Switch Screens
+            document.getElementById('timer-screen').classList.remove('active');
+            document.getElementById('finish-screen').classList.add('active');
+
+            // Victory Beeps
+            playTransitionSound();
+            setTimeout(() => playBeep(1000, 'square', 0.1), 150);
+            setTimeout(() => playBeep(1200, 'square', 0.3), 300);
+        }
+
+        // Return from Finish/Timer -> Config
+        function resetToMain() {
             clearInterval(state.intervalId);
             if(state.wakeLock) state.wakeLock.release();
             document.body.style.background = 'var(--bg-default)';
+            
             document.getElementById('timer-screen').classList.remove('active');
+            document.getElementById('finish-screen').classList.remove('active');
             document.getElementById('config-screen').classList.add('active');
-        }
-
-        function finishWorkout() {
-            stopWorkout();
-            playTransitionSound(); // Final beep
-            setTimeout(() => alert("Workout Complete!"), 100);
         }
 
         // Init
