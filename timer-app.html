@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Luxe HIIT">
+    <title>Luxe HIIT Timer</title>
+    <style>
+        :root {
+            /* Phase Colors */
+            --bg-warmup: linear-gradient(135deg, #4A00E0, #8E2DE2);
+            --bg-high: linear-gradient(135deg, #f12711, #f5af19);
+            --bg-low: linear-gradient(135deg, #11998e, #38ef7d);
+            --bg-cool: linear-gradient(135deg, #00b4db, #0083b0);
+            
+            /* Main Screen - Beige Theme */
+            --bg-default: #F5F5F0; 
+            --surface: #FFFFFF;
+            --surface-border: #E0E0E0;
+            
+            /* Text Colors */
+            --text-main: #1a1a1a;
+            --text-secondary: #666666;
+            --text-light: #ffffff; 
+
+            --font-main: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            --accent: #2b0a3d;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-main);
+            background: var(--bg-default);
+            color: var(--text-main);
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            transition: background 0.6s ease, color 0.6s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Status Bar Spacer */
+        .status-bar-fill {
+            height: env(safe-area-inset-top);
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        /* SCREENS */
+        .screen {
+            flex: 1;
+            padding: 20px 24px 40px;
+            display: none;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .screen.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* CONFIG UI */
+        h1 { 
+            font-weight: 300; 
+            font-size: 2.2rem; 
+            margin: 10px 0 30px; 
+            text-align: center; 
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+        }
+        
+        .input-group {
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-label { 
+            font-size: 1.1rem; 
+            font-weight: 600; 
+            color: var(--text-secondary); 
+        }
+        
+        .time-input {
+            background: transparent;
+            border: none;
+            color: var(--accent);
+            font-size: 1.6rem;
+            width: 120px;
+            text-align: right;
+            font-weight: 500;
+            font-family: 'Courier New', monospace;
+            letter-spacing: -1px;
+        }
+        .time-input::placeholder { color: #ccc; }
+        .time-input:focus { outline: none; }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: auto;
+            box-shadow: 0 10px 25px rgba(43, 10, 61, 0.2);
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.97); }
+
+        /* TIMER UI */
+        #timer-screen { 
+            align-items: center; 
+            justify-content: center; 
+            text-align: center;
+            color: var(--text-light); 
+        }
+        
+        .phase-label {
+            font-size: 1.4rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-weight: 700;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .timer-display {
+            font-size: 7.5rem;
+            font-weight: 200;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            margin: 10px 0;
+            letter-spacing: -3px;
+        }
+
+        .sets-display {
+            font-size: 1.3rem;
+            font-weight: 500;
+            opacity: 0.8;
+            margin-bottom: 60px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            max-width: 320px;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            box-shadow: none;
+        }
+
+        /* PULSE ANIMATION */
+        @keyframes pulse-alert {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse { animation: pulse-alert 0.8s infinite; font-weight: 400; }
+
+    </style>
+</head>
+<body>
+    <div class="status-bar-fill"></div>
+
+    <!-- CONFIGURATION SCREEN -->
+    <div id="config-screen" class="screen active">
+        <h1>Design Workout</h1>
+        
+        <div class="input-group">
+            <span class="input-label">Warm Up</span>
+            <input type="text" inputmode="numeric" id="warmup-cfg" class="time-input" placeholder="00:00" oninput="formatTimeInput(this)">
+        </div>
+
+        <div class="input-group">
+            <span class="input-label">High Intensity</span>
+            <input type="text" inputmode="numeric" id="high-cfg" class="time-input" placeholder="00:00" oninput="formatTimeInput(this)">
+        </div>
+
+        <div class="input-group">
+            <span class="input-label">Low Intensity</span>
+            <input type="text" inputmode="numeric" id="low-cfg" class="time-input" placeholder="00:00" oninput="formatTimeInput(this)">
+        </div>
+
+        <div class="input-group">
+            <span class="input-label">Total Sets</span>
+            <input type="number" inputmode="numeric" id="sets-cfg" class="time-input" value="8" style="width: 60px;">
+        </div>
+
+        <div class="input-group">
+            <span class="input-label">Cool Down</span>
+            <input type="text" inputmode="numeric" id="cooldown-cfg" class="time-input" placeholder="00:00" oninput="formatTimeInput(this)">
+        </div>
+
+        <button class="btn" onclick="startWorkout()">Start Workout</button>
+    </div>
+
+    <!-- TIMER SCREEN -->
+    <div id="timer-screen" class="screen">
+        <div class="phase-label" id="phase-display">WARM UP</div>
+        <div class="timer-display" id="time-display">00:00</div>
+        <div class="sets-display" id="sets-display">Set 1 of 8</div>
+
+        <div class="controls">
+            <button class="btn btn-secondary" onclick="stopWorkout()">Stop</button>
+            <button class="btn btn-secondary" id="pause-btn" onclick="togglePause()">Pause</button>
+        </div>
+    </div>
+
+    <script>
+        // --- IMPROVED INPUT FORMATTING (Right-to-Left Fill) ---
+        function formatTimeInput(input) {
+            // 1. Remove non-digits
+            let raw = input.value.replace(/\D/g, '');
+            
+            // 2. Remove leading zeros to prevent '0001' issues initially, 
+            // but we need them for the math logic, so actually just limit length first.
+            if (raw.length > 4) raw = raw.slice(raw.length - 4); // Keep last 4 typed
+            
+            // 3. Pad with zeros if empty so we always have at least 00
+            let padded = raw.padStart(4, '0'); // e.g. "5" -> "0005", "145" -> "0145"
+            
+            // 4. Slice into MM and SS
+            let mm = padded.slice(0, 2);
+            let ss = padded.slice(2, 4);
+            
+            // 5. Display formatted
+            // If user types "1", raw="1", padded="0001" -> "00:01"
+            // If user types "145", raw="145", padded="0145" -> "01:45"
+            input.value = `${mm}:${ss}`;
+        }
+
+        function parseToSeconds(timeStr) {
+            // timeStr is always "MM:SS" now due to formatter
+            if (!timeStr) return 0;
+            const parts = timeStr.split(':');
+            return (parseInt(parts[0], 10) * 60) + parseInt(parts[1], 10);
+        }
+
+        function secondsToFormat(totalSeconds) {
+            const m = Math.floor(totalSeconds / 60);
+            const s = totalSeconds % 60;
+            return `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+        }
+
+        // --- STATE MANAGEMENT ---
+        let state = {
+            warmup: 30, high: 45, low: 15, cooldown: 60, sets: 8,
+            currentSet: 1,
+            phase: 'IDLE',
+            timeLeft: 0,
+            isPaused: false,
+            intervalId: null,
+            wakeLock: null
+        };
+
+        // --- AUDIO SYSTEM (Loud, Crisp) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playBeep(freq = 880, type = 'square', duration = 0.15) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = type; 
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            // Hard, loud attack
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.8, audioCtx.currentTime + 0.01); // Louder gain (0.8)
+            gain.gain.setValueAtTime(0.8, audioCtx.currentTime + duration - 0.01);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration); 
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+        
+        // Standard "High Intensity" Transition Sound
+        function playTransitionSound() {
+            playBeep(1500, 'square', 0.4); 
+        }
+
+        function playCountdownBeep() {
+            playBeep(880, 'square', 0.15);
+        }
+
+        // --- WAKE LOCK ---
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    state.wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (err) { console.log('Wake Lock error:', err); }
+        }
+
+        // --- STORAGE ---
+        function loadSettings() {
+            // Defaults
+            document.getElementById('warmup-cfg').value = "00:30";
+            document.getElementById('high-cfg').value = "00:45";
+            document.getElementById('low-cfg').value = "00:15";
+            document.getElementById('sets-cfg').value = 8;
+            document.getElementById('cooldown-cfg').value = "01:00";
+
+            if(localStorage.getItem('hiitConfigLuxeV2')) {
+                const cfg = JSON.parse(localStorage.getItem('hiitConfigLuxeV2'));
+                document.getElementById('warmup-cfg').value = secondsToFormat(cfg.warmup);
+                document.getElementById('high-cfg').value = secondsToFormat(cfg.high);
+                document.getElementById('low-cfg').value = secondsToFormat(cfg.low);
+                document.getElementById('sets-cfg').value = cfg.sets;
+                document.getElementById('cooldown-cfg').value = secondsToFormat(cfg.cooldown);
+            }
+        }
+
+        function saveSettings() {
+            const cfg = {
+                warmup: parseToSeconds(document.getElementById('warmup-cfg').value),
+                high: parseToSeconds(document.getElementById('high-cfg').value),
+                low: parseToSeconds(document.getElementById('low-cfg').value),
+                sets: parseInt(document.getElementById('sets-cfg').value) || 1,
+                cooldown: parseToSeconds(document.getElementById('cooldown-cfg').value)
+            };
+            localStorage.setItem('hiitConfigLuxeV2', JSON.stringify(cfg));
+            return cfg;
+        }
+
+        // --- LOGIC ---
+        function startWorkout() {
+            const cfg = saveSettings();
+            Object.assign(state, cfg);
+            state.currentSet = 1;
+            state.isPaused = false;
+            
+            document.getElementById('config-screen').classList.remove('active');
+            document.getElementById('timer-screen').classList.add('active');
+            requestWakeLock();
+            
+            // Initial start sound
+            playTransitionSound();
+
+            if (state.warmup > 0) startPhase('WARMUP');
+            else startPhase('HIGH');
+        }
+
+        function startPhase(phase) {
+            state.phase = phase;
+            updateUIPhase(phase);
+            
+            if (phase === 'WARMUP') state.timeLeft = state.warmup;
+            else if (phase === 'HIGH') state.timeLeft = state.high;
+            else if (phase === 'LOW') state.timeLeft = state.low;
+            else if (phase === 'COOLDOWN') state.timeLeft = state.cooldown;
+
+            runTimer();
+        }
+
+        function updateUIPhase(phase) {
+            const body = document.body;
+            const label = document.getElementById('phase-display');
+            const sets = document.getElementById('sets-display');
+
+            document.getElementById('time-display').classList.remove('pulse');
+
+            if (phase === 'WARMUP') {
+                body.style.background = 'var(--bg-warmup)';
+                label.innerText = "WARM UP";
+                sets.style.opacity = 0;
+            } else if (phase === 'HIGH') {
+                body.style.background = 'var(--bg-high)';
+                label.innerText = "HIGH INTENSITY";
+                sets.innerText = `Set ${state.currentSet} of ${state.sets}`;
+                sets.style.opacity = 1;
+            } else if (phase === 'LOW') {
+                body.style.background = 'var(--bg-low)';
+                label.innerText = "LOW INTENSITY";
+            } else if (phase === 'COOLDOWN') {
+                body.style.background = 'var(--bg-cool)';
+                label.innerText = "COOL DOWN";
+                sets.style.opacity = 0;
+            }
+        }
+
+        function runTimer() {
+            clearInterval(state.intervalId);
+            updateTimerDisplay();
+
+            state.intervalId = setInterval(() => {
+                if (state.isPaused) return;
+
+                state.timeLeft--;
+                updateTimerDisplay();
+
+                // Countdown logic: 3, 2, 1
+                if (state.timeLeft <= 3 && state.timeLeft >= 1) {
+                    document.getElementById('time-display').classList.add('pulse');
+                    playCountdownBeep(); 
+                }
+                // ZERO Transition
+                else if (state.timeLeft === 0) {
+                    document.getElementById('time-display').classList.add('pulse');
+                    // Play the loud transition beep at exactly 0
+                    playTransitionSound();
+                }
+
+                if (state.timeLeft < 0) {
+                    nextPhase();
+                }
+            }, 1000);
+        }
+
+        function nextPhase() {
+            if (state.phase === 'WARMUP') {
+                startPhase('HIGH');
+            } else if (state.phase === 'HIGH') {
+                if (state.currentSet === state.sets && state.cooldown > 0) {
+                    startPhase('COOLDOWN');
+                } else if (state.currentSet === state.sets) {
+                    finishWorkout();
+                } else {
+                    startPhase('LOW');
+                }
+            } else if (state.phase === 'LOW') {
+                state.currentSet++;
+                startPhase('HIGH');
+            } else if (state.phase === 'COOLDOWN') {
+                finishWorkout();
+            }
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('time-display').innerText = secondsToFormat(Math.max(0, state.timeLeft));
+        }
+
+        function togglePause() {
+            state.isPaused = !state.isPaused;
+            document.getElementById('pause-btn').innerText = state.isPaused ? "Resume" : "Pause";
+        }
+
+        function stopWorkout() {
+            clearInterval(state.intervalId);
+            if(state.wakeLock) state.wakeLock.release();
+            document.body.style.background = 'var(--bg-default)';
+            document.getElementById('timer-screen').classList.remove('active');
+            document.getElementById('config-screen').classList.add('active');
+        }
+
+        function finishWorkout() {
+            stopWorkout();
+            playTransitionSound(); // Final beep
+            setTimeout(() => alert("Workout Complete!"), 100);
+        }
+
+        // Init
+        loadSettings();
+    </script>
+</body>
+</html>
